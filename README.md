@@ -6,53 +6,73 @@ A [Mustache](http://mustache.github.com/) implementation in PHP.
 [![Build Status](https://secure.travis-ci.org/bobthecow/mustache.php.png?branch=dev)](http://travis-ci.org/bobthecow/mustache.php)
 
 
+Additions
+---------
+
+The view helpers now get access to the context object:
+
+```php
+<?php
+$mustache = new Mustache_Engine(
+    array(
+        'helpers' => array(
+            'displayName' => function($source, \Mustache_LambdaHelper $lambdaHelper, \Mustache_Context $context) {
+                // Access the current context:
+                $contextValue = $context->last();
+                return isset($contextValue->name) ? $contextValue->name : '';
+            },
+            'changeName' => function($source, \Mustache_LambdaHelper $lambdaHelper, \Mustache_Context $context) {
+                // Remove the current context:
+                $contextValue = $context->pop();
+                // Change the context value:
+                $contextValue->name = 'New Name';
+                // Save the context value
+                $context->push($contextValue);
+                return $lambdaHelper->render($source);
+            },
+        ),
+    )
+);
+```
+
 Usage
 -----
 
-A quick example:
-
 ```php
 <?php
-$m = new Mustache_Engine;
-echo $m->render('Hello {{planet}}', array('planet' => 'World!')); // "Hello World!"
+echo $mustache->render(
+    'Name:
+    {{#person}}
+        <p>
+            {{#displayName}}{{/displayName}}
+        </p>
+        <p>
+            {{#changeName}}
+                The name is changed, but the last name is still {{lastName}}.
+            {{/changeName}}
+        </p>
+        <p>
+            {{#displayName}}{{/displayName}}
+        </p>
+    {{/person}}',
+    array(
+        'person' => array(
+            'name' => 'Some Name',
+            'lastName' => 'Last Name'
+        )
+    )
+);
 ```
 
-
-And a more in-depth example -- this is the canonical Mustache template:
+The result would be:
 
 ```html+jinja
-Hello {{name}}
-You have just won ${{value}}!
-{{#in_ca}}
-Well, ${{taxed_value}}, after taxes.
-{{/in_ca}}
-```
+Name:
 
+Some Name
+The name is changed, but the last name is still Last Name.
+New Name
 
-Create a view "context" object -- which could also be an associative array, but those don't do functions quite as well:
-
-```php
-<?php
-class Chris {
-    public $name  = "Chris";
-    public $value = 10000;
-
-    public function taxed_value() {
-        return $this->value - ($this->value * 0.4);
-    }
-
-    public $in_ca = true;
-}
-```
-
-
-And render it:
-
-```php
-<?php
-$m = new Mustache_Engine;
-$chris = new Chris;
-echo $m->render($template, $chris);
 ```
 
 
@@ -60,10 +80,3 @@ And That's Not All!
 -------------------
 
 Read [the Mustache.php documentation](https://github.com/bobthecow/mustache.php/wiki/Home) for more information.
-
-
-See Also
---------
-
- * [Readme for the Ruby Mustache implementation](http://github.com/defunkt/mustache/blob/master/README.md).
- * [mustache(5)](http://mustache.github.com/mustache.5.html) man page.
